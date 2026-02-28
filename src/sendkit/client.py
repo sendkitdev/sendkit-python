@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from .emails import Emails
 from .errors import SendKitError
 
-_DEFAULT_BASE_URL = "https://api.sendkit.com"
+_DEFAULT_BASE_URL = "https://api.sendkit.dev"
 
 
 class SendKit:
