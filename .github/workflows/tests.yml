@@ -25,8 +25,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install package
-        run: pip install -e ".[dev]" 2>/dev/null || (pip install -e . && pip install pytest)
+      - name: Install package and test dependencies
+        run: pip install -e . && pip install pytest
 
       - name: Run tests
         run: python -m pytest -v
