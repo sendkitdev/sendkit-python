@@ -57,7 +57,7 @@ class Emails:
         if attachments is not None:
             payload["attachments"] = attachments
 
-        return self._client._post("/v1/emails", payload)
+        return self._client._post("/emails", payload)
 
     def send_mime(
         self,
@@ -70,7 +70,7 @@ class Emails:
 
         Returns a dict with the email ``id``.
         """
-        return self._client._post("/v1/emails/mime", {
+        return self._client._post("/emails/mime", {
             "envelope_from": envelope_from,
             "envelope_to": envelope_to,
             "raw_message": raw_message,

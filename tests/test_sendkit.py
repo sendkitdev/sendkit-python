@@ -70,7 +70,7 @@ class TestEmailsSend(TestCase):
             )
 
             self.assertEqual(result["id"], "email-uuid-123")
-            self.assertEqual(captured["path"], "/v1/emails")
+            self.assertEqual(captured["path"], "/emails")
             self.assertEqual(captured["method"], "POST")
             self.assertEqual(captured["auth"], "Bearer sk_test_123")
             self.assertEqual(captured["body"]["from"], "sender@example.com")
@@ -135,7 +135,7 @@ class TestEmailsSend(TestCase):
             )
 
             self.assertEqual(result["id"], "mime-uuid-789")
-            self.assertEqual(captured["path"], "/v1/emails/mime")
+            self.assertEqual(captured["path"], "/emails/mime")
             self.assertEqual(captured["body"]["envelope_from"], "sender@example.com")
             self.assertEqual(captured["body"]["envelope_to"], "recipient@example.com")
         finally:
