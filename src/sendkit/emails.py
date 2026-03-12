@@ -22,7 +22,7 @@ class Emails:
         text: str | None = None,
         cc: str | list[str] | None = None,
         bcc: str | list[str] | None = None,
-        reply_to: str | None = None,
+        reply_to: str | list[str] | None = None,
         headers: dict[str, str] | None = None,
         tags: list[dict[str, str]] | None = None,
         scheduled_at: str | None = None,
@@ -47,7 +47,7 @@ class Emails:
         if bcc is not None:
             payload["bcc"] = [bcc] if isinstance(bcc, str) else bcc
         if reply_to is not None:
-            payload["reply_to"] = reply_to
+            payload["reply_to"] = [reply_to] if isinstance(reply_to, str) else reply_to
         if headers is not None:
             payload["headers"] = headers
         if tags is not None:

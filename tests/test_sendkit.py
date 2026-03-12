@@ -105,7 +105,7 @@ class TestEmailsSend(TestCase):
                 scheduled_at="2026-03-01T10:00:00Z",
             )
 
-            self.assertEqual(captured["body"]["reply_to"], "reply@example.com")
+            self.assertEqual(captured["body"]["reply_to"], ["reply@example.com"])
             self.assertEqual(captured["body"]["scheduled_at"], "2026-03-01T10:00:00Z")
         finally:
             server.shutdown()
@@ -451,6 +451,64 @@ class TestEmailsSend(TestCase):
             self.assertEqual(err.name, "validation_error")
             self.assertEqual(err.status_code, 422)
             self.assertEqual(err.message, "The to field is required.")
+        finally:
+            server.shutdown()
+
+    def test_reply_to_list_passed_as_is(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-reply-list"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Reply-To List",
+                html="<p>Hi</p>",
+                reply_to=["reply1@example.com", "reply2@example.com"],
+            )
+
+            self.assertEqual(captured["body"]["reply_to"], ["reply1@example.com", "reply2@example.com"])
+        finally:
+            server.shutdown()
+
+    def test_bcc_list_passed_as_is(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-bcc-list"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="BCC List",
+                html="<p>Hi</p>",
+                bcc=["bcc1@example.com", "bcc2@example.com"],
+            )
+
+            self.assertEqual(captured["body"]["bcc"], ["bcc1@example.com", "bcc2@example.com"])
         finally:
             server.shutdown()
 
