@@ -141,6 +141,287 @@ class TestEmailsSend(TestCase):
         finally:
             server.shutdown()
 
+    def test_send_to_multiple_recipients(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-multi-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to=["alice@example.com", "bob@example.com"],
+                subject="Multi",
+                html="<p>Hi all</p>",
+            )
+
+            self.assertEqual(captured["body"]["to"], ["alice@example.com", "bob@example.com"])
+        finally:
+            server.shutdown()
+
+    def test_send_to_display_name_format(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-dn-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="Sender <sender@example.com>",
+                to="Alice <alice@example.com>",
+                subject="Display Name",
+                html="<p>Hi</p>",
+            )
+
+            self.assertEqual(captured["body"]["from"], "Sender <sender@example.com>")
+            self.assertEqual(captured["body"]["to"], "Alice <alice@example.com>")
+        finally:
+            server.shutdown()
+
+    def test_send_with_text_body(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-text-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Plain Text",
+                text="Hello, plain text!",
+            )
+
+            self.assertEqual(captured["body"]["text"], "Hello, plain text!")
+            self.assertNotIn("html", captured["body"])
+        finally:
+            server.shutdown()
+
+    def test_send_with_cc(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-cc-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="CC Test",
+                html="<p>Hi</p>",
+                cc=["cc1@example.com", "cc2@example.com"],
+            )
+
+            self.assertEqual(captured["body"]["cc"], ["cc1@example.com", "cc2@example.com"])
+        finally:
+            server.shutdown()
+
+    def test_send_with_bcc(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-bcc-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="BCC Test",
+                html="<p>Hi</p>",
+                bcc="bcc@example.com",
+            )
+
+            self.assertEqual(captured["body"]["bcc"], ["bcc@example.com"])
+        finally:
+            server.shutdown()
+
+    def test_send_with_headers(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-hdr-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            custom_headers = {"X-Custom-Id": "abc-123", "X-Campaign": "welcome"}
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Headers Test",
+                html="<p>Hi</p>",
+                headers=custom_headers,
+            )
+
+            self.assertEqual(captured["body"]["headers"], {"X-Custom-Id": "abc-123", "X-Campaign": "welcome"})
+        finally:
+            server.shutdown()
+
+    def test_send_with_tags(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-tag-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            tags = [
+                {"name": "category", "value": "welcome"},
+                {"name": "campaign_id", "value": "camp-456"},
+            ]
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Tags Test",
+                html="<p>Hi</p>",
+                tags=tags,
+            )
+
+            self.assertEqual(captured["body"]["tags"], [
+                {"name": "category", "value": "welcome"},
+                {"name": "campaign_id", "value": "camp-456"},
+            ])
+        finally:
+            server.shutdown()
+
+    def test_send_with_attachments(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-att-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            attachments = [
+                {"filename": "report.pdf", "content": "base64data=="},
+            ]
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Attachment Test",
+                html="<p>See attached</p>",
+                attachments=attachments,
+            )
+
+            self.assertEqual(captured["body"]["attachments"], [
+                {"filename": "report.pdf", "content": "base64data=="},
+            ])
+        finally:
+            server.shutdown()
+
+    def test_null_fields_omitted_from_payload(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-null-123"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="Minimal",
+                html="<p>Hi</p>",
+            )
+
+            body = captured["body"]
+            self.assertEqual(set(body.keys()), {"from", "to", "subject", "html"})
+            self.assertNotIn("text", body)
+            self.assertNotIn("cc", body)
+            self.assertNotIn("bcc", body)
+            self.assertNotIn("reply_to", body)
+            self.assertNotIn("headers", body)
+            self.assertNotIn("tags", body)
+            self.assertNotIn("scheduled_at", body)
+            self.assertNotIn("attachments", body)
+        finally:
+            server.shutdown()
+
     def test_api_error(self) -> None:
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self) -> None:
@@ -172,3 +453,39 @@ class TestEmailsSend(TestCase):
             self.assertEqual(err.message, "The to field is required.")
         finally:
             server.shutdown()
+
+    def test_cc_string_normalized_to_list(self) -> None:
+        captured: dict[str, Any] = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                captured["body"] = json.loads(self.rfile.read(length))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(json.dumps({"id": "email-cc-norm"}).encode())
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        server, url = _make_server(Handler)
+        try:
+            client = SendKit("sk_test_123", base_url=url)
+            client.emails.send(
+                from_="sender@example.com",
+                to="recipient@example.com",
+                subject="CC Normalize",
+                html="<p>Hi</p>",
+                cc="single@example.com",
+            )
+
+            self.assertEqual(captured["body"]["cc"], ["single@example.com"])
+        finally:
+            server.shutdown()
+
+
+class TestWhitespaceApiKey(TestCase):
+    def test_whitespace_only_api_key_raises_error(self) -> None:
+        os.environ.pop("SENDKIT_API_KEY", None)
+        with self.assertRaises(ValueError):
+            SendKit("   ")

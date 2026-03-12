@@ -22,7 +22,7 @@ class SendKit:
     """
 
     def __init__(self, api_key: str | None = None, *, base_url: str = _DEFAULT_BASE_URL) -> None:
-        self.api_key = api_key or os.environ.get("SENDKIT_API_KEY", "")
+        self.api_key = (api_key or os.environ.get("SENDKIT_API_KEY", "")).strip()
 
         if not self.api_key:
             raise ValueError(
